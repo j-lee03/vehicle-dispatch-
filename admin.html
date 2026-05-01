@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>관리자 전용 관제실</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
+        .header { background: #4b5563; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .header a { background: rgba(255,255,255,0.2); color: white; text-decoration: none; padding: 8px 12px; border-radius: 5px; font-weight: bold; font-size: 14px; }
+        .container { padding: 15px; max-width: 500px; margin: auto; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; float: right; }
+        .available { background: #dcfce7; color: #166534; }
+        .in-use { background: #fee2e2; color: #991b1b; }
+        button.toggle-btn { width: auto; float: right; padding: 6px 10px; margin: -4px 0 0 5px; font-size: 12px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+    
+    <script>
+        const pwd = prompt("관리자 암호를 입력하세요. (기본값: 1234)");
+        if (pwd !== "1234") {
+            alert("암호가 틀렸습니다.");
+            window.location.href = "index.html"; // 틀리면 사용자 페이지로 강제 이동
+        }
+    </script>
+</head>
+<body>
+
+<header class="header">
+    <strong>관리자 차량 관제실</strong>
+    <a href="index.html">➔ 나가기</a>
+</header>
+
+<div class="container">
+    <div class="card">
+        <h3>차량 강제 상태 변경</h3>
+        <p style="font-size: 13px; color: #666; margin-bottom: 15px;">차량 반납 시 '상태변경' 버튼을 눌러 대기중으로 바꿔주세요.</p>
+        <div id="carListAdmin"></div>
+    </div>
+</div>
+
+<script>
+    // index.html에서 저장한 데이터 불러오기
+    let cars = JSON.parse(localStorage.getItem('carData'));
+    if (!cars) {
+        // 혹시 데이터가 꼬였을 때를 대비한 기본값
+        cars = [
+            {id: 'C1', name: '1호차 (스타렉스)', status: true},
+            {id: 'C2', name: '2호차 (카니발)', status: true},
+            {id: 'C3', name: '3호차 (포터)', status: false}
+        ];
+    }
+
+    function updateUI() {
+        const adminList = document.getElementById('carListAdmin');
+        adminList.innerHTML = '';
+
+        cars.forEach((car, idx) => {
+            const statusLabel = car.status ? '대기중' : '사용중';
+            const statusClass = car.status ? 'available' : 'in-use';
+            
+            adminList.innerHTML += `
+                <div style="padding:15px 0; border-bottom:1px solid #eee; font-size:15px;">
+                    <strong>${car.name}</strong> 
+                    <button class="toggle-btn" onclick="toggleCar(${idx})">상태변경</button>
+                    <span class="badge ${statusClass}">${statusLabel}</span>
+                </div>`;
+        });
+    }
+
+    window.toggleCar = function(idx) {
+        cars[idx].status = !cars[idx].status; // 상태 뒤집기
+        localStorage.setItem('carData', JSON.stringify(cars)); // 변경된 데이터 저장
+        updateUI(); // 화면 새로고침
+    };
+
+    updateUI();
+</script>
+
+</body>
+</html>
