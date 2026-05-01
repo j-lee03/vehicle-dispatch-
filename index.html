@@ -7,33 +7,30 @@
     <style>
         body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
         
-        /* 헤더 디자인 수정 (제목 중앙, 관리자 버튼 축소) */
+        /* 헤더 디자인 */
         .header { background: #2563eb; color: white; padding: 16px; text-align: center; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .header strong { font-size: 18px; }
-        #adminToggleBtn { 
-            position: absolute; 
-            right: 10px; 
-            top: 50%; 
-            transform: translateY(-50%); 
-            background: transparent; 
-            border: none; 
-            color: rgba(255,255,255,0.6); /* 글씨를 약간 투명하게 */
-            font-size: 12px; 
-            padding: 10px; 
-            cursor: pointer; 
-        }
+        #adminToggleBtn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: rgba(255,255,255,0.6); font-size: 12px; padding: 10px; cursor: pointer; }
 
         .container { padding: 15px; max-width: 500px; margin: auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 15px; }
         h3 { margin-top: 0; font-size: 16px; color: #1a1a1a; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        
         input, select, button.action-btn { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #d1d5db; box-sizing: border-box; font-size: 15px; }
         button.action-btn { background: #2563eb; color: white; font-weight: bold; border: none; cursor: pointer; }
         .hidden { display: none !important; }
         
         /* 상태 뱃지 */
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; float: right; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; float: right; margin-left: 5px; }
         .available { background: #dcfce7; color: #166534; }
         .in-use { background: #fee2e2; color: #991b1b; }
+
+        /* 관리자용 작은 버튼들 */
+        .btn-group { margin-top: 10px; display: flex; gap: 5px; justify-content: flex-end; }
+        .btn-sm { padding: 6px 10px; font-size: 12px; border: none; border-radius: 4px; color: white; cursor: pointer; }
+        .btn-status { background: #4b5563; }
+        .btn-edit { background: #10b981; }
+        .btn-delete { background: #ef4444; }
     </style>
 </head>
 <body>
@@ -67,18 +64,32 @@
 
     <div id="adminSection" class="hidden">
         <div class="card">
-            <h3>차량 관제 및 상태 변경</h3>
+            <h3>새 차량 추가</h3>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="newCarName" placeholder="예: 4호차 (레이)" style="margin-top: 0;">
+                <button onclick="addCar()" class="action-btn" style="margin-top: 0; width: 80px; padding: 12px 0;">추가</button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>차량 관제 및 편집</h3>
             <div id="carListAdmin"></div>
         </div>
     </div>
 </div>
 
 <script>
-    const cars = [
+    // 브라우저 저장소에서 데이터를 불러오거나, 없으면 기본값 세팅
+    let cars = JSON.parse(localStorage.getItem('dispatchCars')) || [
         {id: 'C1', name: '1호차 (스타렉스)', status: true},
         {id: 'C2', name: '2호차 (카니발)', status: true},
         {id: 'C3', name: '3호차 (포터)', status: false}
     ];
+
+    // 데이터 저장 함수
+    function saveData() {
+        localStorage.setItem('dispatchCars', JSON.stringify(cars));
+    }
 
     function updateUI() {
         const userList = document.getElementById('carListUser');
@@ -93,21 +104,66 @@
             const statusLabel = car.status ? '대기중' : '사용중';
             const statusClass = car.status ? 'available' : 'in-use';
             
+            // 사용자 화면 리스트
             userList.innerHTML += `<div style="padding:12px 0; border-bottom:1px solid #f0f2f5; font-size:15px;">${car.name} <span class="badge ${statusClass}">${statusLabel}</span></div>`;
             
+            // 셀렉트 박스 (대기중인 차량만)
             if(car.status) select.innerHTML += `<option value="${idx}">${car.name}</option>`;
             
-            adminList.innerHTML += `<div style="padding:12px 0; border-bottom:1px solid #f0f2f5; font-size:15px;">${car.name} 
-                <button onclick="toggleCar(${idx})" style="width:auto; float:right; padding:6px 10px; margin:-4px 0 0 5px; font-size:12px; background:#4b5563; color:white; border:none; border-radius:4px; cursor:pointer;">상태변경</button>
-                <span class="badge ${statusClass}">${statusLabel}</span></div>`;
+            // 관리자 화면 리스트 (상태, 수정, 삭제 버튼 추가)
+            adminList.innerHTML += `
+                <div style="padding:12px 0; border-bottom:1px solid #f0f2f5; font-size:15px;">
+                    <strong>${car.name}</strong> <span class="badge ${statusClass}">${statusLabel}</span>
+                    <div class="btn-group">
+                        <button class="btn-sm btn-status" onclick="toggleCar(${idx})">상태변경</button>
+                        <button class="btn-sm btn-edit" onclick="editCar(${idx})">이름수정</button>
+                        <button class="btn-sm btn-delete" onclick="deleteCar(${idx})">삭제</button>
+                    </div>
+                </div>`;
         });
     }
 
+    /* --- 차량 관리 기능 --- */
+    
+    // 1. 상태 변경
     window.toggleCar = function(idx) {
         cars[idx].status = !cars[idx].status;
+        saveData();
         updateUI();
     };
 
+    // 2. 차량 추가
+    window.addCar = function() {
+        const nameInput = document.getElementById('newCarName');
+        const name = nameInput.value.trim();
+        if(!name) return alert('차량 이름을 입력해주세요.');
+        
+        cars.push({ id: 'C' + Date.now(), name: name, status: true });
+        nameInput.value = ''; // 입력창 비우기
+        saveData();
+        updateUI();
+    };
+
+    // 3. 차량 수정
+    window.editCar = function(idx) {
+        const newName = prompt('수정할 차량 이름을 입력하세요.', cars[idx].name);
+        if(newName && newName.trim() !== '') {
+            cars[idx].name = newName.trim();
+            saveData();
+            updateUI();
+        }
+    };
+
+    // 4. 차량 삭제
+    window.deleteCar = function(idx) {
+        if(confirm(`'${cars[idx].name}' 차량을 정말 삭제하시겠습니까?`)) {
+            cars.splice(idx, 1); // 배열에서 삭제
+            saveData();
+            updateUI();
+        }
+    };
+
+    /* --- 화면 전환 및 로그인 기능 --- */
     window.toggleAdminMode = function() {
         if(document.getElementById('adminSection').classList.contains('hidden')) {
             document.getElementById('userSection').classList.add('hidden');
@@ -138,11 +194,13 @@
         if(!name) return alert('이름을 입력하세요.');
         if(!carIdx) return alert('차량을 선택하세요.');
         
-        cars[carIdx].status = false;
+        cars[carIdx].status = false; // 배차 완료 시 사용중으로 변경
+        saveData();
         alert(name + '님의 배차 신청이 완료되었습니다.');
         updateUI();
     };
 
+    // 처음 시작할 때 화면 그리기
     updateUI();
 </script>
 
