@@ -5,93 +5,82 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>차량 배차 시스템</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
-        .header { background: #2563eb; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header h1 { margin: 0; font-size: 18px; }
+        body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
         
-        /* 관리자 모드 버튼을 아주 작게 수정했습니다 */
-        .nav-btn { background: rgba(255,255,255,0.15); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.3); padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; }
-        
+        /* 헤더 디자인 수정 (제목 중앙, 관리자 버튼 축소) */
+        .header { background: #2563eb; color: white; padding: 16px; text-align: center; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header strong { font-size: 18px; }
+        #adminToggleBtn { 
+            position: absolute; 
+            right: 10px; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            background: transparent; 
+            border: none; 
+            color: rgba(255,255,255,0.6); /* 글씨를 약간 투명하게 */
+            font-size: 12px; 
+            padding: 10px; 
+            cursor: pointer; 
+        }
+
         .container { padding: 15px; max-width: 500px; margin: auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        h3 { margin-top: 0; color: #1a1a1a; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
+        h3 { margin-top: 0; font-size: 16px; color: #1a1a1a; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        input, select, button.action-btn { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #d1d5db; box-sizing: border-box; font-size: 15px; }
+        button.action-btn { background: #2563eb; color: white; font-weight: bold; border: none; cursor: pointer; }
+        .hidden { display: none !important; }
         
-        input, select, button.primary-btn, button.secondary-btn { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; font-size: 15px; }
-        button.primary-btn { background: #2563eb; color: white; font-weight: bold; border: none; cursor: pointer; margin-top: 15px; }
-        button.secondary-btn { background: #4b5563; color: white; border: none; cursor: pointer; margin-top: 10px; }
-        
+        /* 상태 뱃지 */
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; float: right; }
         .available { background: #dcfce7; color: #166534; }
         .in-use { background: #fee2e2; color: #991b1b; }
-        .hidden { display: none !important; }
-        
-        /* 팝업창(alert)을 대체하는 화면 내 알림창 */
-        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: opacity 0.3s; opacity: 0; }
-        #toast.show { visibility: visible; opacity: 1; }
     </style>
 </head>
 <body>
 
 <header class="header">
-    <h1 id="pageTitle">차량 배차 신청</h1>
-    <button class="nav-btn" id="toggleModeBtn" onclick="goToLogin()">관리자 모드</button>
+    <strong id="title">차량 배차 시스템</strong>
+    <button onclick="toggleAdminMode()" id="adminToggleBtn">관리자</button>
 </header>
 
 <div class="container">
-
-    <div id="loginView" class="card hidden">
-        <h3>관리자 암호 입력</h3>
-        <p style="font-size: 13px; color: #666;">관리자 페이지에 접근하려면 암호를 입력하세요.</p>
-        <input type="password" id="pwdInput" placeholder="기본 암호: 1234" style="text-align: center; letter-spacing: 5px;">
-        <button class="primary-btn" onclick="checkPwd()">접속하기</button>
-        <button class="secondary-btn" style="background: transparent; color: #666; border: 1px solid #ddd;" onclick="goToUser()">취소</button>
+    <div id="loginSection" class="card hidden">
+        <h3 style="text-align:center; border:none;">관리자 인증</h3>
+        <input type="password" id="pwd" placeholder="암호 입력 (1234)" style="text-align:center; letter-spacing:3px;">
+        <button onclick="checkLogin()" class="action-btn">확인</button>
+        <button onclick="cancelLogin()" style="background:#6b7280; color:white; border:none; padding:12px; border-radius:8px; margin-top:10px; width:100%;">취소</button>
     </div>
 
-    <div id="userView">
+    <div id="userSection">
         <div class="card">
-            <h3>현재 차량 상태</h3>
+            <h3>현재 차량 현황</h3>
             <div id="carListUser"></div>
         </div>
-        
         <div class="card">
             <h3>배차 신청서</h3>
-            <input type="text" id="userName" placeholder="이름 (예: 12기 홍길동)">
+            <input type="text" id="userName" placeholder="이름 (예: 15기 홍길동)">
             <select id="carSelect"></select>
-            <input type="text" id="destination" placeholder="목적지">
-            <button onclick="submitRequest()" class="primary-btn">배차 신청하기</button>
+            <input type="text" id="destination" placeholder="목적지 (예: 예술의전당)">
+            <button onclick="submitDispatch()" class="action-btn">배차 신청하기</button>
         </div>
     </div>
 
-    <div id="adminView" class="hidden">
+    <div id="adminSection" class="hidden">
         <div class="card">
-            <h3>차량 관제 제어</h3>
-            <p style="font-size: 13px; color: #666; margin-bottom: 15px;">차량이 반납되면 '상태변경' 버튼을 눌러 대기중으로 바꿔주세요.</p>
+            <h3>차량 관제 및 상태 변경</h3>
             <div id="carListAdmin"></div>
         </div>
     </div>
-
 </div>
 
-<div id="toast">메시지</div>
-
 <script>
-    // 상태 데이터 (메모리에 임시 저장)
-    let cars = [
-        { id: 'C1', name: '1호차 (스타렉스)', isAvailable: true },
-        { id: 'C2', name: '2호차 (카니발)', isAvailable: true },
-        { id: 'C3', name: '3호차 (포터)', isAvailable: false }
+    const cars = [
+        {id: 'C1', name: '1호차 (스타렉스)', status: true},
+        {id: 'C2', name: '2호차 (카니발)', status: true},
+        {id: 'C3', name: '3호차 (포터)', status: false}
     ];
 
-    // 알림창 띄우기 함수
-    function showMessage(msg) {
-        const toast = document.getElementById("toast");
-        toast.innerText = msg;
-        toast.className = "show";
-        setTimeout(function() { toast.className = toast.className.replace("show", ""); }, 2500);
-    }
-
-    // 화면 업데이트
-    function renderApp() {
+    function updateUI() {
         const userList = document.getElementById('carListUser');
         const adminList = document.getElementById('carListAdmin');
         const select = document.getElementById('carSelect');
@@ -100,93 +89,61 @@
         adminList.innerHTML = '';
         select.innerHTML = '<option value="">배차할 차량 선택</option>';
 
-        cars.forEach((car, index) => {
-            const statusText = car.isAvailable ? '대기중' : '사용중';
-            const statusClass = car.isAvailable ? 'available' : 'in-use';
+        cars.forEach((car, idx) => {
+            const statusLabel = car.status ? '대기중' : '사용중';
+            const statusClass = car.status ? 'available' : 'in-use';
             
-            userList.innerHTML += `<div style="padding:12px 0; border-bottom:1px solid #eee; font-size:15px;">
-                ${car.name} <span class="badge ${statusClass}">${statusText}</span>
-            </div>`;
+            userList.innerHTML += `<div style="padding:12px 0; border-bottom:1px solid #f0f2f5; font-size:15px;">${car.name} <span class="badge ${statusClass}">${statusLabel}</span></div>`;
             
-            if(car.isAvailable) {
-                select.innerHTML += `<option value="${index}">${car.name}</option>`;
-            }
+            if(car.status) select.innerHTML += `<option value="${idx}">${car.name}</option>`;
             
-            adminList.innerHTML += `<div style="padding:15px 0; border-bottom:1px solid #eee; font-size:15px; display:flex; align-items:center; justify-content:space-between;">
-                <div><strong>${car.name}</strong><br><span class="badge ${statusClass}" style="float:none; margin-top:5px; display:inline-block;">${statusText}</span></div>
-                <button onclick="toggleCarStatus(${index})" style="width:auto; padding:8px 12px; margin:0; background:#4b5563; color:white; border:none; border-radius:6px; font-size:12px;">상태변경</button>
-            </div>`;
+            adminList.innerHTML += `<div style="padding:12px 0; border-bottom:1px solid #f0f2f5; font-size:15px;">${car.name} 
+                <button onclick="toggleCar(${idx})" style="width:auto; float:right; padding:6px 10px; margin:-4px 0 0 5px; font-size:12px; background:#4b5563; color:white; border:none; border-radius:4px; cursor:pointer;">상태변경</button>
+                <span class="badge ${statusClass}">${statusLabel}</span></div>`;
         });
     }
 
-    // 관리자 차량 상태 변경
-    window.toggleCarStatus = function(index) {
-        cars[index].isAvailable = !cars[index].isAvailable;
-        renderApp();
-        showMessage(cars[index].name + " 상태가 변경되었습니다.");
+    window.toggleCar = function(idx) {
+        cars[idx].status = !cars[idx].status;
+        updateUI();
     };
 
-    // 사용자 배차 신청
-    window.submitRequest = function() {
-        const name = document.getElementById('userName').value.trim();
-        const carIndex = document.getElementById('carSelect').value;
-        const dest = document.getElementById('destination').value.trim();
-        
-        if (!name) return showMessage("이름을 입력해주세요.");
-        if (!carIndex) return showMessage("차량을 선택해주세요.");
-        if (!dest) return showMessage("목적지를 입력해주세요.");
-        
-        cars[carIndex].isAvailable = false;
-        renderApp();
-        
-        document.getElementById('userName').value = '';
-        document.getElementById('destination').value = '';
-        
-        showMessage(name + "님의 배차가 완료되었습니다!");
-    };
-
-    // 화면 전환
-    window.goToLogin = function() {
-        const btn = document.getElementById('toggleModeBtn');
-        if (btn.innerText === "나가기") {
-            goToUser();
+    window.toggleAdminMode = function() {
+        if(document.getElementById('adminSection').classList.contains('hidden')) {
+            document.getElementById('userSection').classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
         } else {
-            document.getElementById('userView').classList.add('hidden');
-            document.getElementById('adminView').classList.add('hidden');
-            document.getElementById('loginView').classList.remove('hidden');
-            document.getElementById('pageTitle').innerText = "관리자 인증";
-            btn.classList.add('hidden');
+            location.reload(); 
         }
     };
 
-    window.checkPwd = function() {
-        const pwd = document.getElementById('pwdInput').value;
-        if (pwd === "1234") {
-            document.getElementById('loginView').classList.add('hidden');
-            document.getElementById('adminView').classList.remove('hidden');
-            document.getElementById('pageTitle').innerText = "차량 관리자실";
-            document.getElementById('pwdInput').value = ""; 
-            
-            const btn = document.getElementById('toggleModeBtn');
-            btn.classList.remove('hidden');
-            btn.innerText = "나가기";
+    window.checkLogin = function() {
+        if(document.getElementById('pwd').value === '1234') {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('adminSection').classList.remove('hidden');
+            document.getElementById('title').innerText = "관리자 전용 관제실";
         } else {
-            showMessage("암호가 올바르지 않습니다.");
+            alert("암호가 올바르지 않습니다.");
         }
     };
 
-    window.goToUser = function() {
-        document.getElementById('loginView').classList.add('hidden');
-        document.getElementById('adminView').classList.add('hidden');
-        document.getElementById('userView').classList.remove('hidden');
-        document.getElementById('pageTitle').innerText = "차량 배차 신청";
-        
-        const btn = document.getElementById('toggleModeBtn');
-        btn.classList.remove('hidden');
-        btn.innerText = "관리자 모드";
+    window.cancelLogin = function() {
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('userSection').classList.remove('hidden');
     };
 
-    renderApp();
+    window.submitDispatch = function() {
+        const carIdx = document.getElementById('carSelect').value;
+        const name = document.getElementById('userName').value;
+        if(!name) return alert('이름을 입력하세요.');
+        if(!carIdx) return alert('차량을 선택하세요.');
+        
+        cars[carIdx].status = false;
+        alert(name + '님의 배차 신청이 완료되었습니다.');
+        updateUI();
+    };
+
+    updateUI();
 </script>
 
 </body>
