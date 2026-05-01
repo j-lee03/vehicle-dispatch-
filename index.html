@@ -65,7 +65,7 @@
 <div class="container">
     <div id="loginSection" class="card hidden">
         <h3 style="text-align:center; border:none;">관리자 인증</h3>
-        <input type="password" id="pwd" placeholder="암호 입력 (1234)" style="text-align:center; letter-spacing:3px;">
+        <input type="password" id="pwd" placeholder="암호 입력 (영문7 숫자4 특수기호1)" style="text-align:center; letter-spacing:3px;">
         <button onclick="checkLogin()" class="action-btn">확인</button>
         <button onclick="cancelLogin()" style="background:#6b7280; color:white; border:none; padding:12px; border-radius:8px; margin-top:10px; width:100%;">취소</button>
     </div>
@@ -81,7 +81,7 @@
             <input type="text" id="userName" placeholder="성함 (예: 이현직)">
             <select id="carSelect">
                 </select>
-            <input type="text" id="destination" placeholder="목적지 입력">
+            <input type="text" id="destination" placeholder="목적지 입력하세요 전체주소로부탁드립니다.">
             <button onclick="submitDispatch()" class="action-btn">배차 신청하기</button>
         </div>
     </div>
@@ -212,7 +212,7 @@
     };
 
     window.checkLogin = function() {
-        if(document.getElementById('pwd').value === '1234') {
+        if(document.getElementById('pwd').value === 'gmail1324#') {
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('adminSection').classList.remove('hidden');
             document.getElementById('title').innerText = "차량 관리자 모드";
