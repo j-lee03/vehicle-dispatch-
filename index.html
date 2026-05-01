@@ -9,130 +9,136 @@
         .header { background: #2563eb; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
         .container { padding: 15px; max-width: 500px; margin: auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
-        input, select, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
-        button { background: #2563eb; color: white; font-weight: bold; border: none; cursor: pointer; }
+        input, select, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; font-size: 15px; }
+        button.action-btn { background: #2563eb; color: white; font-weight: bold; border: none; cursor: pointer; }
         .hidden { display: none !important; }
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; float: right; }
         .available { background: #dcfce7; color: #166534; }
         .in-use { background: #fee2e2; color: #991b1b; }
+        /* 스크립트 상태 확인용 바 */
+        #js-status { text-align: center; padding: 8px; font-size: 13px; font-weight: bold; color: white; background: red; }
     </style>
 </head>
 <body>
 
+<div id="js-status">❌ 화면 대기 중이거나 코드가 끊겼습니다.</div>
+
 <header class="header">
     <strong id="title">차량 배차 신청</strong>
-    <button id="adminToggleBtn" style="width: auto; margin: 0; padding: 5px 10px; background: rgba(255,255,255,0.2);">관리자 모드</button>
+    <button onclick="toggleAdminMode()" style="width: auto; margin: 0; padding: 8px 12px; background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 5px; font-weight: bold;">관리자 모드</button>
 </header>
 
 <div class="container">
     <div id="loginSection" class="card hidden">
         <h3>관리자 인증</h3>
-        <input type="password" id="pwd" placeholder="암호 입력 하세요">
-        <button id="loginBtn">확인</button>
-        <button id="cancelBtn" style="background:#666;">취소</button>
+        <input type="password" id="pwd" placeholder="암호 입력 (1234)">
+        <button onclick="checkLogin()" class="action-btn">확인</button>
+        <button onclick="cancelLogin()" style="background:#666; color:white; border:none; padding:12px; border-radius:8px; margin-top:10px; width:100%;">취소</button>
     </div>
 
     <div id="userSection">
         <div class="card">
-            <h3>차량 현황</h3>
+            <h3>현재 차량 현황</h3>
             <div id="carListUser"></div>
         </div>
         <div class="card">
-            <h3>신청서 작성</h3>
-            <input type="text" id="userName" placeholder="성함">
+            <h3>배차 신청서</h3>
+            <input type="text" id="userName" placeholder="이름 (예: 홍길동)">
             <select id="carSelect"></select>
-            <input type="text" id="destination" placeholder="주소를입력하세요.">
-            <button id="submitBtn">배차 신청하기</button>
+            <input type="text" id="destination" placeholder="목적지">
+            <button onclick="submitDispatch()" class="action-btn">배차 신청하기</button>
         </div>
     </div>
 
     <div id="adminSection" class="hidden">
         <div class="card">
-            <h3>차량 강제 관리</h3>
+            <h3>차량 강제 관제</h3>
             <div id="carListAdmin"></div>
         </div>
     </div>
 </div>
 
 <script>
-    // 시작하자마자 체크 (이게 안 뜨면 브라우저가 실행을 막은 것임)
-    alert("시스템이 정상 작동합니다! 확인을 눌러주세요.");
+    // 코드가 정상적으로 로드되었는지 확인하는 장치
+    document.getElementById('js-status').style.background = '#166534';
+    document.getElementById('js-status').innerText = '✅ 시스템 정상 작동 중 (버튼이 작동합니다)';
 
     const cars = [
         {id: 'C1', name: '1호차 (스타렉스)', status: true},
         {id: 'C2', name: '2호차 (카니발)', status: true},
         {id: 'C3', name: '3호차 (포터)', status: false}
-        {id: 'C4', name: '1호차 (스타렉스)', status: true},
-        {id: 'C5', name: '2호차 (카니발)', status: true},
-        {id: 'C6', name: '3호차 (포터)', status: false}
-        {id: 'C7', name: '1호차 (스타렉스)', status: true},
-        {id: 'C8', name: '2호차 (카니발)', status: true},
-        {id: 'C9', name: '3호차 (포터)', status: false}
-        {id: 'C10', name: '1호차 (스타렉스)', status: true},
-        {id: 'C11', name: '2호차 (카니발)', status: true},
-        {id: 'C12', name: '3호차 (포터)', status: false}
     ];
 
     function updateUI() {
         const userList = document.getElementById('carListUser');
         const adminList = document.getElementById('carListAdmin');
         const select = document.getElementById('carSelect');
-
+        
         userList.innerHTML = '';
         adminList.innerHTML = '';
-        select.innerHTML = '<option value="">차량 선택</option>';
+        select.innerHTML = '<option value="">배차할 차량 선택</option>';
 
         cars.forEach((car, idx) => {
             const statusLabel = car.status ? '대기중' : '사용중';
             const statusClass = car.status ? 'available' : 'in-use';
-
-            userList.innerHTML += `<div style="padding:10px 0; border-bottom:1px solid #eee;">${car.name} <span class="badge ${statusClass}">${statusLabel}</span></div>`;
+            
+            userList.innerHTML += `<div style="padding:12px 0; border-bottom:1px solid #eee; font-size:15px;">${car.name} <span class="badge ${statusClass}">${statusLabel}</span></div>`;
+            
             if(car.status) select.innerHTML += `<option value="${idx}">${car.name}</option>`;
-
-            adminList.innerHTML += `<div style="padding:10px 0;">${car.name}
-                <button onclick="toggleCar(${idx})" style="width:auto; float:right; padding:5px; margin:0; font-size:12px;">상태변경</button>
+            
+            adminList.innerHTML += `<div style="padding:12px 0; border-bottom:1px solid #eee; font-size:15px;">${car.name} 
+                <button onclick="toggleCar(${idx})" style="width:auto; float:right; padding:6px 10px; margin:-4px 0 0 5px; font-size:12px; background:#4b5563; color:white; border:none; border-radius:4px;">상태변경</button>
                 <span class="badge ${statusClass}">${statusLabel}</span></div>`;
         });
     }
 
+    // 상태 변경 (글로벌 함수)
     window.toggleCar = function(idx) {
         cars[idx].status = !cars[idx].status;
         updateUI();
     };
 
-    document.getElementById('adminToggleBtn').onclick = function() {
+    // 관리자 모드 토글
+    window.toggleAdminMode = function() {
         if(document.getElementById('adminSection').classList.contains('hidden')) {
             document.getElementById('userSection').classList.add('hidden');
             document.getElementById('loginSection').classList.remove('hidden');
         } else {
-            location.reload(); // 리셋 후 사용자모드로
+            // 관리자 화면에서 다시 누르면 새로고침(사용자 화면 복귀)
+            location.reload(); 
         }
     };
 
-    document.getElementById('loginBtn').onclick = function() {
-        if(document.getElementById('pwd').value === 'gmail1324#') {
+    // 로그인 체크
+    window.checkLogin = function() {
+        if(document.getElementById('pwd').value === '1234') {
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('adminSection').classList.remove('hidden');
-            document.getElementById('title').innerText = "관리자 페이지";
-            document.getElementById('adminToggleBtn').innerText = "로그아웃";
+            document.getElementById('title').innerText = "관리자 전용 관제실";
         } else {
-            alert("비밀번호 틀림!");
+            alert("암호가 올바르지 않습니다.");
         }
     };
 
-    document.getElementById('cancelBtn').onclick = function() {
+    // 로그인 취소
+    window.cancelLogin = function() {
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('userSection').classList.remove('hidden');
     };
 
-    document.getElementById('submitBtn').onclick = function() {
+    // 배차 신청
+    window.submitDispatch = function() {
         const carIdx = document.getElementById('carSelect').value;
-        if(!carIdx) return alert('차량을 선택하세요');
+        const name = document.getElementById('userName').value;
+        if(!name) return alert('이름을 입력하세요.');
+        if(!carIdx) return alert('차량을 선택하세요.');
+        
         cars[carIdx].status = false;
-        alert('신청 완료!');
+        alert(name + '님의 배차 신청이 완료되었습니다.');
         updateUI();
     };
 
+    // 초기 화면 그리기
     updateUI();
 </script>
 
